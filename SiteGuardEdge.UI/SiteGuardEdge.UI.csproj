@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Emgu.CV.UI" Version="4.10.0.5680" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.22.1" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.0-preview.5.24306.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SiteGuardEdge.Infrastructure.Data\SiteGuardEdge.Infrastructure.Data.csproj" />
+    <ProjectReference Include="..\SiteGuardEdge.Infrastructure.AI\SiteGuardEdge.Infrastructure.AI.csproj" />
+    <ProjectReference Include="..\SiteGuardEdge.Infrastructure\SiteGuardEdge.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
