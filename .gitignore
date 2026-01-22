@@ -30,3 +30,7 @@ SiteGuardEdge.UI/nuget/microsoft.ml.onnxruntime.1.22.1/buildTransitive/net8.0-io
 .vs/SiteGuardEdge/v17/DocumentLayout.backup.json
 /models/yolov8m.onnx
 *.onnx
+.vs/SiteGuardEdge/v17/.futdcache.v2
+.vs/SiteGuardEdge/v17/.futdcache.v2
+.vs/SiteGuardEdge/v17/.futdcache.v2
+.vs/SiteGuardEdge/v17/.suo

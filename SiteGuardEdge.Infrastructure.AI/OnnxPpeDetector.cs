@@ -14,10 +14,12 @@ namespace SiteGuardEdge.Infrastructure.AI;
 
 public enum PpeItem
 {
-    Helmet,
-    Vest,
     Gloves,
-    SafetyGlasses
+    Vest,
+    Goggles,
+    Helmet,
+    Mask,
+    SafetyShoe
 }
 
 public class DetectedObject
@@ -43,7 +45,8 @@ public class OnnxPpeDetector
     private readonly bool _useGpu;
     private readonly string _logMessage;
     private readonly float _confidenceThreshold;
-    private readonly string[] _classNames = { "person", "helmet", "vest", "gloves", "safety glasses" }; // Example class names, adjust as per your model
+    //{0: 'Gloves', 1: 'Vest', 2: 'goggles', 3: 'helmet', 4: 'mask', 5: 'safety_shoe'}
+    private readonly string[] _classNames = { "Gloves", "Vest", "goggles", "helmet", "mask", "safety_shoe" }; // Example class names, adjust as per your model
     private readonly int _inputWidth = 640;
     private readonly int _inputHeight = 640;
 
@@ -145,7 +148,7 @@ public class OnnxPpeDetector
         // Or [1, num_boxes, 84] if transposed
         // Assuming output is [1, 84, N] where N is number of predictions.
 
-        int numClasses = _classNames.Length; // 5 classes: person, helmet, vest, gloves, safety glasses
+        int numClasses = _classNames.Length; // 6 classes: "Gloves", "Vest", "goggles", "helmet", "mask", "safety_shoe"
         int predictionsCount = output.Dimensions[2]; // N
 
         for (int i = 0; i < predictionsCount; i++)
@@ -154,14 +157,15 @@ public class OnnxPpeDetector
             float y = output[0, 1, i];
             float w = output[0, 2, i];
             float h = output[0, 3, i];
-            float objectConfidence = output[0, 4, i];
+            // no object confidence (we think) discarded by onnx converter  ijh 15/1/2026
+          //  float objectConfidence = output[0, 4, i];
 
             // Find the class with the highest score
             float maxClassScore = 0;
             int classId = -1;
             for (int j = 0; j < numClasses; j++)
             {
-                float classScore = output[0, 5 + j, i];
+                float classScore = output[0, 4 + j, i];
                 if (classScore > maxClassScore)
                 {
                     maxClassScore = classScore;
@@ -169,7 +173,7 @@ public class OnnxPpeDetector
                 }
             }
 
-            float confidence = objectConfidence * maxClassScore;
+            float confidence = maxClassScore; //objectConfidence * maxClassScore;
 
             if (confidence >= _confidenceThreshold && classId != -1)
             {
@@ -238,53 +242,88 @@ public class OnnxPpeDetector
     private List<PpeComplianceResult> AnalyzePpeCompliance(List<DetectedObject> detections, float iouThreshold = 0.2f)
     {
         var complianceResults = new List<PpeComplianceResult>();
-        var persons = detections.Where(d => d.ClassLabel == "person").ToList();
+       // var persons = detections.Where(d => d.ClassLabel == "person").ToList();
         var ppeItems = detections.Where(d => d.ClassLabel != "person").ToList();
 
-        foreach (var person in persons)
-        {
-            var ppePresence = new Dictionary<PpeItem, bool>
+        //foreach (var person in persons)
+        //{
+        var ppePresence = new Dictionary<PpeItem, bool>
             {
-                { PpeItem.Helmet, false },
-                { PpeItem.Vest, false },
-                { PpeItem.Gloves, false },
-                { PpeItem.SafetyGlasses, false }
+                 { PpeItem.Gloves, false },
+                 { PpeItem.Vest, false },
+                 { PpeItem.Goggles, false },
+                 { PpeItem.Helmet, false },
+                 { PpeItem.Mask, false },
+                 { PpeItem.SafetyShoe, false }
             };
-            var detectedPpeForPerson = new List<DetectedObject>();
 
-            foreach (var ppe in ppeItems)
-            {
-                if (CalculateIoU(person.BoundingBox, ppe.BoundingBox) > iouThreshold)
-                {
-                    detectedPpeForPerson.Add(ppe);
-                    switch (ppe.ClassLabel)
-                    {
-                        case "helmet":
-                            ppePresence[PpeItem.Helmet] = true;
-                            break;
-                        case "vest":
-                            ppePresence[PpeItem.Vest] = true;
-                            break;
-                        case "gloves":
-                            ppePresence[PpeItem.Gloves] = true;
-                            break;
-                        case "safety glasses":
-                            ppePresence[PpeItem.SafetyGlasses] = true;
-                            break;
-                    }
-                }
-            }
+        //var detectedPpeForPerson = new List<DetectedObject>();
+        
 
-            bool isCompliant = ppePresence.All(kv => kv.Value); // All required PPE items must be present
+        var detectedPpe = new List<DetectedObject>(); 
+        foreach (var d in detections) 
+        { 
+            detectedPpe.Add(d); 
+            switch (d.ClassLabel) 
+            { 
+                case "Gloves": ppePresence[PpeItem.Gloves] = true; 
+                    break; 
+                case "Vest": ppePresence[PpeItem.Vest] = true; 
+                    break; 
+                case "goggles": ppePresence[PpeItem.Goggles] = true; 
+                    break; 
+                case "helmet": ppePresence[PpeItem.Helmet] = true; 
+                    break; 
+                case "mask": ppePresence[PpeItem.Mask] = true; 
+                    break; 
+                case "safety_shoe": ppePresence[PpeItem.SafetyShoe] = true; 
+                    break; 
+            } 
+        }
+       bool isCompliant = ppePresence.All(kv => kv.Value);
+        //foreach (var ppe in ppeItems)
+        //    {
+        //        if (CalculateIoU(person.BoundingBox, ppe.BoundingBox) > iouThreshold)
+        //        {
+        //            detectedPpeForPerson.Add(ppe);
+        //            switch (ppe.ClassLabel)
+        //            {
+        //               // "Gloves", "Vest", "goggles", "helmet", "mask", "safety_shoe"
+        //                case "Gloves":
+        //                    ppePresence[PpeItem.Gloves] = true;
+        //                break;
+        //                case "Vest":
+        //                    ppePresence[PpeItem.Vest] = true;
+        //                    break;
+        //                case "goggles":
+        //                    ppePresence[PpeItem.Goggles] = true;
+        //                    break;
+        //                case "helmet":
+        //                    ppePresence[PpeItem.Helmet] = true;
+        //                    break;
+        //                case "mask":
+        //                    ppePresence[PpeItem.Mask] = true;
+        //                    break;
+        //                case "safety_shoe":
+        //                    ppePresence[PpeItem.SafetyShoe] = true;
+        //                    break;
+
+
+
+        //            }
+        //        }
+        //    }
+
+      //      bool isCompliant = ppePresence.All(kv => kv.Value); // All required PPE items must be present
 
             complianceResults.Add(new PpeComplianceResult
             {
-                Person = person,
+                Person = null,
                 IsCompliant = isCompliant,
                 PpePresence = ppePresence,
-                DetectedPpe = detectedPpeForPerson
+                DetectedPpe = detectedPpe
             });
-        }
+        //}
 
         return complianceResults;
     }
